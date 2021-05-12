@@ -29,6 +29,8 @@ window.onload = function () {
 };
 
 //matter stuff:
+let width = window.innerWidth;
+let height = window.innerHeight;
 
 // module aliases
 var Engine = Matter.Engine,
@@ -37,10 +39,10 @@ var Engine = Matter.Engine,
   Common = Matter.Common,
   MouseConstraint = Matter.MouseConstraint,
   Mouse = Matter.Mouse,
+  Composite = Matter.Composite,
   Bodies = Matter.Bodies,
   Vertices = Matter.Vertices,
-  Svg = Matter.Svg,
-  Composite = Matter.Composite;
+  Svg = Matter.Svg;
 
 // create an engine
 var engine = Engine.create(),
@@ -54,108 +56,90 @@ var render = Render.create({
   canvas: canvas,
   engine: engine,
   options: {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    wireframes: false, // <-- important
+    width: width,
+    height: height,
+    wireframes: false,
   },
 });
-
-// svgs
-// add bodies
-if (typeof fetch !== "undefined") {
-  var select = function (root, selector) {
-    return Array.prototype.slice.call(root.querySelectorAll(selector));
-  };
-  const svgs = document.getElementById("svgs");
-  console.log(svgs);
-
-  [...svgs.children].map((svg, i) => {
-    console.log(svg);
-    var color = Common.choose([
-      "#f19648",
-      "#f5d259",
-      "#f55a3c",
-      "#063e7b",
-      "#ececd1",
-    ]);
-
-    var vertexSets = select(svg, "path").map(function (path) {
-      return Vertices.scale(Svg.pathToVertices(path, 30), 1, 1);
-    });
-
-    Composite.add(
-      world,
-      Bodies.fromVertices(
-        300 + i * 150,
-        200 + i * 50,
-        vertexSets,
-        {
-          render: {
-            fillStyle: color,
-            strokeStyle: color,
-            lineWidth: 1,
-          },
-        },
-        true
-      )
-    );
-  });
-
-  // loadSvg("./svg/svg.svg").then(function (root) {
-  //   var color = Common.choose([
-  //     "#f19648",
-  //     "#f5d259",
-  //     "#f55a3c",
-  //     "#063e7b",
-  //     "#ececd1",
-  //   ]);
-
-  //   var vertexSets = select(root, "path").map(function (path) {
-  //     return Svg.pathToVertices(path, 30);
-  //   });
-
-  //   Composite.add(
-  //     world,
-  //     Bodies.fromVertices(
-  //       window.innerWidth / 1.3,
-  //       80,
-  //       vertexSets,
-  //       {
-  //         render: {
-  //           fillStyle: "red",
-  //           strokeStyle: color,
-  //           lineWidth: 1,
-  //         },
-  //       },
-  //       true
-  //     )
-  //   );
-  // });
-} else {
-  Common.warn("Fetch is not available. Could not load SVG.");
-}
-
-// create two boxes and a ground
-var boxA = Bodies.rectangle(400, 200, 80, 80);
-var boxB = Bodies.rectangle(450, 50, 80, 80);
-var ground = Bodies.rectangle(
-  window.innerWidth / 2,
-  window.innerHeight,
-  window.innerWidth,
-  60,
-  {
-    isStatic: true,
-  }
-);
-
-// add all of the bodies to the world
-Composite.add(engine.world, [boxA, boxB, ground]);
-
 // run the renderer
 Render.run(render);
 
 // create runner
 var runner = Runner.create();
-
-// run the engine
 Runner.run(runner, engine);
+
+// svgs
+var select = function (root, selector) {
+  return Array.prototype.slice.call(root.querySelectorAll(selector));
+};
+const svgs = document.getElementById("svgs");
+console.log(svgs);
+
+[...svgs.children].map((svg, i) => {
+  console.log(svg);
+  var color = Common.choose([
+    "#f19648",
+    "#f5d259",
+    "#f55a3c",
+    "#063e7b",
+    "#ececd1",
+  ]);
+
+  var vertexSets = select(svg, "path").map(function (path) {
+    return Vertices.scale(Svg.pathToVertices(path, 30), 1, 1);
+  });
+
+  Composite.add(
+    world,
+    Bodies.fromVertices(
+      300 + i * 150,
+      200 + i * 50,
+      vertexSets,
+      {
+        render: {
+          fillStyle: color,
+          strokeStyle: color,
+          lineWidth: 1,
+        },
+      },
+      true
+    )
+  );
+});
+
+// create two boxes and a ground
+var boxA = Bodies.rectangle(400, 200, 80, 80);
+var boxB = Bodies.rectangle(450, 50, 80, 80);
+
+Composite.add(world, [
+  Bodies.rectangle(width / 2, 0, width, 50, { isStatic: true }),
+  Bodies.rectangle(width / 2, height, width, 50, { isStatic: true }),
+  Bodies.rectangle(width, height / 2, 50, height, { isStatic: true }),
+  Bodies.rectangle(0, height / 2, 50, height, { isStatic: true }),
+]);
+
+// add all of the bodies to the world
+Composite.add(world, [boxA, boxB]);
+
+// add mouse control
+var mouse = Mouse.create(render.canvas),
+  mouseConstraint = MouseConstraint.create(engine, {
+    mouse: mouse,
+    constraint: {
+      stiffness: 0.2,
+      render: {
+        visible: true,
+      },
+    },
+  });
+
+Composite.add(world, mouseConstraint);
+
+// keep the mouse in sync with rendering
+render.mouse = mouse;
+
+// fit the render viewport to the scene
+Render.lookAt(render, {
+  min: { x: 0, y: 0 },
+  max: { x: window.innerWidth, y: window.innerHeight },
+});
