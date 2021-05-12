@@ -13,6 +13,12 @@
 
 const colours = ["#f19648", "#f5d259", "#f55a3c", "#063e7b", "#ececd1"];
 
+function radToDeg(radians) {
+  var pi = Math.PI;
+  radians / (pi / 180);
+  return radians / (pi / 180);
+}
+
 //matter stuff:
 let width = window.innerWidth;
 let height = window.innerHeight;
@@ -43,7 +49,7 @@ var render = Render.create({
   options: {
     width: width,
     height: height,
-    wireframes: false,
+    wireframes: true,
   },
 });
 // run the renderer
@@ -57,8 +63,10 @@ Runner.run(runner, engine);
 var select = function (root, selector) {
   return Array.prototype.slice.call(root.querySelectorAll(selector));
 };
+
 const svgs = document.getElementById("svgs");
 
+const matterBodies = [];
 [...svgs.children].map((svg, i) => {
   var color = colours[i];
 
@@ -66,27 +74,44 @@ const svgs = document.getElementById("svgs");
     return Vertices.scale(Svg.pathToVertices(path, 30), 1, 1);
   });
 
-  Composite.add(
-    world,
-    Bodies.fromVertices(
-      300 + i * 150,
-      200 + i * 50,
-      vertexSets,
-      {
-        render: {
-          fillStyle: color,
-          strokeStyle: color,
-          lineWidth: 1,
-        },
+  matterBodies[i] = Bodies.fromVertices(
+    300 + i * 150,
+    200 + i * 50,
+    vertexSets,
+    {
+      render: {
+        fillStyle: color,
+        strokeStyle: color,
+        lineWidth: 1,
       },
-      true
-    )
+    },
+    true
   );
-});
 
-// create two boxes and a ground
-var boxA = Bodies.rectangle(400, 200, 80, 80);
-var boxB = Bodies.rectangle(450, 50, 80, 80);
+  console.log("vertex", vertexSets);
+
+  // Matter.Body.setCentre(matterBodies[i], Matter.Vector.create(100, 10), true);
+  // Matter.Body.setCentre(
+  //   matterBodies[i],
+  //   Matter.Vector.sub(matterBodies[i].bounds.min, matterBodies[i].position),
+  //   true
+  // );
+
+  // let xOffset = svg.viewBox.animVal.width - matterBodies[i].bounds.min.x;
+  // let yOffset = svg.viewBox.animVal.height - matterBodies[i].bounds.min.y;
+  // console.log(xOffset, yOffset);
+  // Matter.Body.setCentre(
+  //   matterBodies[i],
+  //   Matter.Vector.create(xOffset, yOffset),
+  //   true
+  // );
+
+  //Body.translate(body, Vector.sub(body.bounds.min, body.position))
+
+  console.log("bounds", matterBodies[i].bounds);
+
+  Composite.add(world, matterBodies[i]);
+});
 
 Composite.add(world, [
   Bodies.rectangle(width / 2, 0, width, 50, { isStatic: true }),
@@ -94,9 +119,6 @@ Composite.add(world, [
   Bodies.rectangle(width, height / 2, 50, height, { isStatic: true }),
   Bodies.rectangle(0, height / 2, 50, height, { isStatic: true }),
 ]);
-
-// add all of the bodies to the world
-Composite.add(world, [boxA, boxB]);
 
 // add mouse control
 var mouse = Mouse.create(render.canvas),
@@ -111,6 +133,7 @@ var mouse = Mouse.create(render.canvas),
   });
 
 Composite.add(world, mouseConstraint);
+console.log("world", world);
 
 // keep the mouse in sync with rendering
 render.mouse = mouse;
@@ -134,7 +157,21 @@ window.onload = function () {
     paperSvgs[i] = project.importSVG(svg);
     // svg = new Path(loadSvg("./svg/svg.svg"));
     paperSvgs[i].fillColor = colours[i];
+    // paperSvgs[i].applyMatrix = false;
   });
 
-  paper.view.onFrame = function (event) {};
+  console.log("item", paperSvgs[0]);
+
+  let r = 100;
+  paper.view.onFrame = function (event) {
+    for (let i = 0; i < paperSvgs.length; i++) {
+      paperSvgs[i].position = [
+        matterBodies[i].position.x,
+        matterBodies[i].position.y,
+      ];
+      paperSvgs[i].rotation = radToDeg(matterBodies[i].angle);
+
+      paperSvgs[i].applyMatrix = false;
+    }
+  };
 };
