@@ -22,6 +22,7 @@ function radToDeg(radians) {
 //matter stuff:
 let width = window.innerWidth;
 let height = window.innerHeight;
+let scale = width / 2000;
 
 // module aliases
 var Engine = Matter.Engine,
@@ -71,12 +72,12 @@ const matterBodies = [];
   var color = colours[i];
 
   var vertexSets = select(svg, "path").map(function (path) {
-    return Vertices.scale(Svg.pathToVertices(path, 30), 1, 1);
+    return Vertices.scale(Svg.pathToVertices(path, 30), scale, scale);
   });
 
   matterBodies[i] = Bodies.fromVertices(
-    300 + i * 150,
-    200 + i * 50,
+    width / 6 + (i * width) / 8,
+    200,
     vertexSets,
     {
       render: {
@@ -157,6 +158,7 @@ window.onload = function () {
     paperSvgs[i] = project.importSVG(svg);
     // svg = new Path(loadSvg("./svg/svg.svg"));
     paperSvgs[i].fillColor = colours[i];
+    paperSvgs[i].scale(scale);
     // paperSvgs[i].applyMatrix = false;
   });
 
